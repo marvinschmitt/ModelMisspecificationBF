@@ -18,7 +18,7 @@ def kl_latent_space(z, log_det_J):
     loss = tf.reduce_mean(0.5 * tf.square(tf.norm(z, axis=-1)) - log_det_J)
     return loss
 
-def maximum_mean_discrepancy(source_samples, target_samples, minimum=0.):
+def maximum_mean_discrepancy(source_samples, target_samples, minimum=0., unbiased=False):
     """ This Maximum Mean Discrepancy (MMD) loss is calculated with a number of different Gaussian kernels.
 
     """
@@ -28,7 +28,12 @@ def maximum_mean_discrepancy(source_samples, target_samples, minimum=0.):
         1e3, 1e4, 1e5, 1e6
     ]
     gaussian_kernel = partial(_gaussian_kernel_matrix, sigmas=sigmas)
-    loss_value = _mmd_kernel(source_samples, target_samples, kernel=gaussian_kernel)
+    if unbiased:
+        loss_value = _mmd_kernel_unbiased(source_samples, target_samples, kernel=gaussian_kernel)
+    else:
+        loss_value = _mmd_kernel(source_samples, target_samples, kernel=gaussian_kernel)
+        
+        
     loss_value = tf.maximum(minimum, loss_value) 
     return loss_value
 
@@ -97,7 +102,31 @@ def mmd_kl_loss(network, *args, mmd_weight=1.0):
     # Sum and return losses
     return kl_loss + mmd_weight * mmd_loss
 
+####
 
+
+def _mmd_kernel_unbiased(x, y, kernel=_gaussian_kernel_matrix):
+    """ Computes the Maximum Mean Discrepancy (MMD) of two samples: x and y.
+
+    Maximum Mean Discrepancy (MMD) is a distance-measure between the samples of the distributions of x and y.
+
+    Parameters
+    ----------
+    x      : tf.Tensor of shape (num_samples, num_features)
+    y      : tf.Tensor of shape (num_samples, num_features)
+    kernel : callable, default: _gaussian_kernel_matrix
+        A function which computes the kernel in MMD.
+
+    Returns
+    -------
+    loss : tf.Tensor
+        squared maximum mean discrepancy loss, shape (,)
+    """
+    m, n = x.shape[0], y.shape[0]
+    loss = (1.0/(m*(m+1))) * tf.reduce_sum(kernel(x, x))  # lint error: sigmas unfilled
+    loss += (1.0/(n*(n+1))) * tf.reduce_sum(kernel(y, y))  # lint error: sigmas unfilled
+    loss -= (2.0/(m*n)) * tf.reduce_sum(kernel(x, y))  # lint error: sigmas unfilled
+    return loss
 
 
 

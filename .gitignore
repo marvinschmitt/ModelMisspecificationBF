@@ -4,7 +4,13 @@ __pycache__/
 .idea/
 build/
 ckpt/
-
+plots/
 *.c
 *.so
 *.pyd
+
+*.npy
+
+plots/*.png
+
+*.DS_Store
