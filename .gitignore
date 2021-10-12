@@ -9,6 +9,8 @@ plots/
 *.so
 *.pyd
 
+data/
+
 *.npy
 
 plots/*.png
