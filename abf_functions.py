@@ -225,3 +225,29 @@ def true_vs_estimated(theta_true, theta_est, param_names, dpi=300,
         
     if show:
         plt.show()
+        
+        
+def mmd_permutation(x, y, n_perm=1000, kernel=_gaussian_kernel_matrix):
+    """
+    Computes the p-value of the MMD by permuting the samples.
+    """
+    
+    # Obtain sample sizes
+    m = int(x.shape[0])
+    n = int(y.shape[0])
+    xy = tf.concat((x, y), axis=0)
+    
+    sigmas = [
+        1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1, 5, 10, 15, 20, 25, 30, 35, 100,
+        1e3, 1e4, 1e5, 1e6
+    ]
+    gaussian_kernel = partial(_gaussian_kernel_matrix, sigmas=sigmas)
+    
+    mmd2_null = np.zeros(n_perm)
+    # Run permutations
+    for i in range(n_perm):
+        idx = np.random.permutation(m+n)
+        xy = tf.gather(xy, idx, axis=0)
+        mmd2 = _mmd_kernel_unbiased(xy[:m], xy[m:], kernel=gaussian_kernel)
+        mmd2_null[i] = mmd2
+    return mmd2_null
