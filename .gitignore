@@ -16,3 +16,5 @@ data/
 plots/*.png
 
 *.DS_Store
+
+covid_models/
