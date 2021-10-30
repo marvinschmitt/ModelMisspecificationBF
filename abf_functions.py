@@ -251,3 +251,12 @@ def mmd_permutation(x, y, n_perm=1000, kernel=_gaussian_kernel_matrix):
         mmd2 = _mmd_kernel_unbiased(xy[:m], xy[m:], kernel=gaussian_kernel)
         mmd2_null[i] = mmd2
     return mmd2_null
+
+
+
+def normalize(x):
+    n_sim, n_obs, data_dim = x.shape
+    s = np.std(x, axis=1)
+    s_reshaped = s.reshape(n_sim, 1, data_dim).repeat(n_obs, axis=1)
+    x_normalized = np.divide(x, s_reshaped)
+    return x_normalized
