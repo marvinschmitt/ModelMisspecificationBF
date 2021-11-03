@@ -17,6 +17,6 @@ plots/*.png
 
 *.DS_Store
 
-covid_models/
+covid_models_notebooks/
 
 archive/
