@@ -220,7 +220,7 @@ def true_vs_estimated(theta_true, theta_est, param_names, dpi=300,
     f.tight_layout()
 
     if filename is not None:
-        f.savefig(filename)
+        f.savefig(filename, bbox_inches="tight")
         
         
     if show:
