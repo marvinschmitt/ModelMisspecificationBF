@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 from scipy.stats import binom
+from scipy import stats
+import scipy
 from sklearn.calibration import calibration_curve
 from sklearn.metrics import r2_score, confusion_matrix
 
@@ -260,3 +262,61 @@ def normalize(x):
     s_reshaped = s.reshape(n_sim, 1, data_dim).repeat(n_obs, axis=1)
     x_normalized = np.divide(x, s_reshaped)
     return x_normalized
+
+
+
+'''
+def noisify_x(x, lamda, alpha=1.0, noise_scale=1.0):
+    n_sim, n_obs, data_dim = x.shape
+    
+    s_x = np.std(x, axis=1).reshape(n_sim, 1, data_dim).repeat(n_obs, axis=1)
+    
+    xi = scipy.stats.levy_stable.rvs(alpha=alpha, beta=0, loc=0, scale=noise_scale, size=x.shape)
+    x_o = x + lamda * xi
+    
+    s_x_o = np.std(x_o, axis=1).reshape(n_sim, 1, data_dim).repeat(n_obs, axis=1)
+    
+    normalization_factors = np.divide(s_x_o, s_x)
+    
+    x_o_normalized = np.divide(x_o, normalization_factors)
+    
+    return x_o_normalized
+    '''
+
+'''
+def noisify_x(x, lamda, alpha=1.5, noise_scale=1.0):
+    n_sim, n_obs, data_dim = x.shape
+    N_replacements = int(lamda * n_obs)
+
+    indices = [np.random.choice(n_obs, size = N_replacements, replace=False) for i in range(n_sim)]
+
+    xi = scipy.stats.levy_stable.rvs(
+        alpha=alpha, beta=0, loc=0, scale=noise_scale, size=(n_sim, N_replacements, data_dim)
+    )
+
+    for i, idx in enumerate(indices):
+        x[i, idx, :] = xi[i]
+    
+    return x
+    '''
+
+def noisify_x(x, lamda, noise_shape=1.0, noise_sampler=partial(scipy.stats.levy_stable.rvs, alpha=1.5, beta=0, loc=0, scale=1)):
+    n_sim, n_obs, data_dim = x.shape
+    N_replacements = int(lamda * n_obs)
+
+    indices = [np.random.choice(n_obs, size = N_replacements, replace=False) for i in range(n_sim)]
+
+    xi = noise_sampler(size=(n_sim, N_replacements, data_dim))
+
+    for i, idx in enumerate(indices):
+        x[i, idx, :] = xi[i]
+    
+    return x
+
+
+
+def beta_noise_sampler(a, b, tau, size, mu=0):
+    x = scipy.stats.beta.rvs(a=a, b=b, size=size)
+    x = x - a/(a+b) + mu
+    x = x*3*tau
+    return x
