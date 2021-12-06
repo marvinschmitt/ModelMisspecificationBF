@@ -9,7 +9,6 @@ plots/
 *.so
 *.pyd
 
-export_stan_posteriors/stan_posteriors.pkl
 
 data/
 
