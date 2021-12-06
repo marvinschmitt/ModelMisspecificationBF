@@ -320,3 +320,15 @@ def beta_noise_sampler(a, b, tau, size, mu=0):
     x = x - a/(a+b) + mu
     x = x*3*tau
     return x
+
+
+
+
+def build_viridis_palette(n, n_total=20):
+    """
+    Builds a viridis palette with maximal entropy (evenly spaced)
+    """
+    color_palette = np.array(sns.color_palette("viridis", n_colors=n_total))
+    indices = np.array(np.floor(np.linspace(0, n_total-1, n)), dtype=np.int32)
+    color_palette = color_palette[indices]
+    return [tuple(c) for c in color_palette]
