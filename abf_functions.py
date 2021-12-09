@@ -20,7 +20,7 @@ def kl_latent_space(z, log_det_J):
     loss = tf.reduce_mean(0.5 * tf.square(tf.norm(z, axis=-1)) - log_det_J)
     return loss
 
-def maximum_mean_discrepancy(source_samples, target_samples, minimum=0., unbiased=False):
+def maximum_mean_discrepancy(source_samples, target_samples, minimum=0., unbiased=False, squared=True):
     """ This Maximum Mean Discrepancy (MMD) loss is calculated with a number of different Gaussian kernels.
 
     """
@@ -37,7 +37,11 @@ def maximum_mean_discrepancy(source_samples, target_samples, minimum=0., unbiase
         
         
     loss_value = tf.maximum(minimum, loss_value) 
-    return loss_value
+    
+    if squared:
+        return loss_value
+    else:
+        return tf.math.sqrt(loss_value)
 
 def _gaussian_kernel_matrix(x, y, sigmas):
     """ Computes a Gaussian Radial Basis Kernel between the samples of x and y.
@@ -125,8 +129,8 @@ def _mmd_kernel_unbiased(x, y, kernel=_gaussian_kernel_matrix):
         squared maximum mean discrepancy loss, shape (,)
     """
     m, n = x.shape[0], y.shape[0]
-    loss = (1.0/(m*(m+1))) * tf.reduce_sum(kernel(x, x))  # lint error: sigmas unfilled
-    loss += (1.0/(n*(n+1))) * tf.reduce_sum(kernel(y, y))  # lint error: sigmas unfilled
+    loss = (1.0/(m*(m-1))) * tf.reduce_sum(kernel(x, x))  # lint error: sigmas unfilled
+    loss += (1.0/(n*(n-1))) * tf.reduce_sum(kernel(y, y))  # lint error: sigmas unfilled
     loss -= (2.0/(m*n)) * tf.reduce_sum(kernel(x, y))  # lint error: sigmas unfilled
     return loss
 
@@ -324,11 +328,11 @@ def beta_noise_sampler(a, b, tau, size, mu=0):
 
 
 
-def build_viridis_palette(n, n_total=20):
+def build_viridis_palette(n, n_total=20, base_palette="viridis"):
     """
     Builds a viridis palette with maximal entropy (evenly spaced)
     """
-    color_palette = np.array(sns.color_palette("viridis", n_colors=n_total))
+    color_palette = np.array(sns.color_palette(base_palette, n_colors=n_total))
     indices = np.array(np.floor(np.linspace(0, n_total-1, n)), dtype=np.int32)
     color_palette = color_palette[indices]
     return [tuple(c) for c in color_palette]
