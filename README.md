@@ -1,3 +1,3 @@
 # ModelMisspecificationBF
 
-Code accompanying the manuscript "Did you **miss** me? Model Misspecification and Posterior Errors in Amortized Bayesian Inference"
+Code accompanying the pre-print *BayesFlow can reliably detect Model Misspecification and Posterior Errors in Amortized Bayesian Inference* (Schmitt, M., Bürkner, P. C., Köthe, U., & Radev, S. T., 2021).
