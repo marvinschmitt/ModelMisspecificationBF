@@ -21,3 +21,5 @@ plots/*.png
 covid_models_notebooks/
 
 archive/
+
+export_ckpt/mmd
