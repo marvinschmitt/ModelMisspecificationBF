@@ -123,7 +123,7 @@ def _mmd_kernel(x, y, kernel=None):
     loss -= 2 * tf.reduce_mean(kernel(x, y))
     return loss
 
-def mmd_kl_loss(network, *args, mmd_weight=1.0):
+def mmd_kl_loss(network, *args, mmd_weight=1.0, kernel="gaussian"):
     """KL loss in latent z space, MMD loss in summary space."""
     
     # Apply net and unpack 
@@ -132,7 +132,7 @@ def mmd_kl_loss(network, *args, mmd_weight=1.0):
     
     # Apply MMD loss to x_sum
     z_normal = tf.random.normal(x_sum.shape) # idea: alpha-stable, alpha=1.5
-    mmd_loss = maximum_mean_discrepancy(x_sum, z_normal)
+    mmd_loss = maximum_mean_discrepancy(x_sum, z_normal, kernel=kernel)
     
     # Apply KL loss for inference net
     kl_loss = kl_latent_space(z, log_det_J)
