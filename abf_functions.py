@@ -20,7 +20,9 @@ def kl_latent_space(z, log_det_J):
     loss = tf.reduce_mean(0.5 * tf.square(tf.norm(z, axis=-1)) - log_det_J)
     return loss
 
-def maximum_mean_discrepancy(source_samples, target_samples, kernel = "gaussian", minimum=0., unbiased=False, squared=True):
+
+def maximum_mean_discrepancy(source_samples, target_samples, kernel = "gaussian", 
+minimum=0., unbiased=False, squared=True):
     """ This Maximum Mean Discrepancy (MMD) loss is calculated with a number of different Gaussian or Inverse-Multiquadratic kernels.
     """
 
@@ -50,6 +52,7 @@ def maximum_mean_discrepancy(source_samples, target_samples, kernel = "gaussian"
     else:
         return tf.math.sqrt(loss_value)
 
+
 def _gaussian_kernel_matrix(x, y, sigmas):
     """ Computes a Gaussian Radial Basis Kernel between the samples of x and y.
 
@@ -67,8 +70,8 @@ def _gaussian_kernel_matrix(x, y, sigmas):
     kernel: tf.Tensor
         RBF kernel of shape [num_samples{x}, num_samples{y}]
     """
-    def norm(v):
-        return tf.reduce_sum(tf.square(v), 1)
+
+    norm = lambda v: tf.reduce_sum(tf.square(v), 1)
     beta = 1. / (2. * (tf.expand_dims(sigmas, 1)))
     dist = tf.transpose(norm(tf.expand_dims(x, 2) - tf.transpose(y)))
     s = tf.matmul(beta, tf.reshape(dist, (1, -1)))
@@ -76,36 +79,28 @@ def _gaussian_kernel_matrix(x, y, sigmas):
     return kernel
 
 def _inverse_multiquadratic_kernel_matrix(x, y, sigmas):
-    # TODO!
-    
-    """ Computes an Inverse Multiquadratic Kernel between the samples of x and y.
+    """ Computes an inverse multiquadratic RBF between the samples of x and y.
 
-    We create a sum of multiple inverse multiquadratic kernels each having a width :math:`\sigma_i`.
+    We create a sum of multiple IM-RBF kernels each having a width :math:`\sigma_i`.
 
     Parameters
     ----------
     x :  tf.Tensor of shape (M, num_features)
     y :  tf.Tensor of shape (N, num_features)
     sigmas : list(float)
-        List which denotes the widths of each of the terms in the kernel.
+        List which denotes the widths of each of the gaussians in the kernel.
 
     Returns
     -------
     kernel: tf.Tensor
-        Inverse-Multiquadratic kernel of shape [num_samples{x}, num_samples{y}]
+        RBF kernel of shape [num_samples{x}, num_samples{y}]
     """
-    def norm(v):
-        return tf.reduce_sum(tf.square(v), 1)
-    #beta = 1. / (2. * (tf.expand_dims(sigmas, 1)))
     
-    dist = tf.transpose(norm(tf.expand_dims(x, 2) - tf.transpose(y)))
-    
-    #s = tf.matmul(beta, tf.reshape(dist, (1, -1)))
-    
-    kernel = tf.reshape(tf.reduce_sum(tf.exp(-s), 0), tf.shape(dist))
-    return kernel
+    dist = tf.expand_dims(tf.reduce_sum((x[:, None, :] - y[None, :, :]) ** 2, axis=-1), axis=-1)
+    sigmas = tf.expand_dims(sigmas, 0)
+    return tf.reduce_sum(sigmas / (dist + sigmas), axis=-1)
 
-def _mmd_kernel(x, y, kernel=_gaussian_kernel_matrix):
+def _mmd_kernel(x, y, kernel=None):
     """ Computes the Maximum Mean Discrepancy (MMD) of two samples: x and y.
 
     Maximum Mean Discrepancy (MMD) is a distance-measure between the samples of the distributions of x and y.
@@ -123,12 +118,12 @@ def _mmd_kernel(x, y, kernel=_gaussian_kernel_matrix):
         squared maximum mean discrepancy loss, shape (,)
     """
 
-    loss = tf.reduce_mean(kernel(x, x))  # lint error: sigmas unfilled
-    loss += tf.reduce_mean(kernel(y, y))  # lint error: sigmas unfilled
-    loss -= 2 * tf.reduce_mean(kernel(x, y))  # lint error: sigmas unfilled
+    loss = tf.reduce_mean(kernel(x, x))  
+    loss += tf.reduce_mean(kernel(y, y))  
+    loss -= 2 * tf.reduce_mean(kernel(x, y))
     return loss
 
-def mmd_kl_loss(network, *args, mmd_weight=1.0, kernel = "gaussian"):
+def mmd_kl_loss(network, *args, mmd_weight=1.0):
     """KL loss in latent z space, MMD loss in summary space."""
     
     # Apply net and unpack 
@@ -137,7 +132,7 @@ def mmd_kl_loss(network, *args, mmd_weight=1.0, kernel = "gaussian"):
     
     # Apply MMD loss to x_sum
     z_normal = tf.random.normal(x_sum.shape) # idea: alpha-stable, alpha=1.5
-    mmd_loss = maximum_mean_discrepancy(x_sum, z_normal, kernel=kernel)
+    mmd_loss = maximum_mean_discrepancy(x_sum, z_normal)
     
     # Apply KL loss for inference net
     kl_loss = kl_latent_space(z, log_det_J)
@@ -145,10 +140,9 @@ def mmd_kl_loss(network, *args, mmd_weight=1.0, kernel = "gaussian"):
     # Sum and return losses
     return kl_loss + mmd_weight * mmd_loss
 
-####
 
 
-def _mmd_kernel_unbiased(x, y, kernel=_gaussian_kernel_matrix):
+def _mmd_kernel_unbiased(x, y, kernel=None):
     """ Computes the Maximum Mean Discrepancy (MMD) of two samples: x and y.
 
     Maximum Mean Discrepancy (MMD) is a distance-measure between the samples of the distributions of x and y.
@@ -166,9 +160,9 @@ def _mmd_kernel_unbiased(x, y, kernel=_gaussian_kernel_matrix):
         squared maximum mean discrepancy loss, shape (,)
     """
     m, n = x.shape[0], y.shape[0]
-    loss = (1.0/(m*(m-1))) * tf.reduce_sum(kernel(x, x))  # lint error: sigmas unfilled
-    loss += (1.0/(n*(n-1))) * tf.reduce_sum(kernel(y, y))  # lint error: sigmas unfilled
-    loss -= (2.0/(m*n)) * tf.reduce_sum(kernel(x, y))  # lint error: sigmas unfilled
+    loss = (1.0/(m*(m-1))) * tf.reduce_sum(kernel(x, x))  
+    loss += (1.0/(n*(n-1))) * tf.reduce_sum(kernel(y, y)) 
+    loss -= (2.0/(m*n)) * tf.reduce_sum(kernel(x, y)) 
     return loss
 
 
