@@ -131,7 +131,7 @@ def mmd_kl_loss(network, *args, mmd_weight=1.0, kernel="gaussian"):
     z, log_det_J = out
     
     # Apply MMD loss to x_sum
-    z_normal = tf.random.normal(x_sum.shape) # idea: alpha-stable, alpha=1.5
+    z_normal = tf.random.normal(x_sum.shape)
     mmd_loss = maximum_mean_discrepancy(x_sum, z_normal, kernel=kernel)
     
     # Apply KL loss for inference net
